@@ -1,0 +1,7 @@
+Frontend:
+cd src
+npm run start
+Backend:
+cd src/api/venv
+source venv/bin/activate
+FLASK_APP=main.py FLASK_ENV=development flask run

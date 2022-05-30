@@ -1,0 +1,83 @@
+startup
+
+init time recorded - 4:30pm
+calc time between now and bed 16:30 - 21:45 = 5.15hrs
+
+Activities:
+    Essentials(food prep) happens before you start app so only click button after free time starts
+    Programming 20%
+    Russian 20%
+    Finance/Business/Stocks 20%
+    Self Help 20%
+    Exercise 20%
+    Total = 100% takes me to 21:45
+
+
+server sends to frontend
+[paused?, countdown time, task]
+
+Time starts
+Shows random activity and random amount of time between 10-30% of time counting down
+method():
+    takes current time x (start)
+    starts countdown ~30mins
+        returns amount of time(30mins) and front end takes that time and renders a countdown
+        backend knows that the frontend countdown started at x time so it can keep track of when
+        it should finish, whenever front end is rendered it will make a call to the backend and
+        get all the data it needs to render including if a task is running/how much time you have
+        left for it
+
+    countdown ends, task is complete
+    (hopefully) frontend countdown is running and can tell the backend its finished
+        * problem here, if frontend isn't open anywhere it's not gonna be able to send that backend
+        * have it open on launch on rpi? so it's always running that way?, what if you've got 
+        * multiple open and they all send pings back... might have to be web sockets(no but defs a solution)
+        ** have frontend call for data every x seconds, lot of calls but meh backend is single
+        * source of truth
+    next task is started
+    continues until end time (9:45)
+
+if pause is clicked():
+    countdown is stopped
+    paused set to true
+    percentage calculator()
+        how much of the current task have I done current time - start time covnert to %
+
+    when start is clicked()
+        figure out how much time has passed since pausing
+        recalculate how much time you have left between now and 21:45
+        uncompleted tasks will have bigger % and half completed tasks will have less % but overall 
+        all will have less time
+
+        take current task completed % and take that from total task % allocated
+        now you have time left to go in task in % = p
+        loop through rest of tasks
+            13.5%/25%
+            25%/25%
+            20%/20%
+            30%/30%
+
+            (25% * 11.5%)/100 = 2.875%
+            13.5 + 2.875 = 16.375
+            (25% * 11.5%)/100 = 2.875%
+            25% + 2.875% = 27.875
+            (20% * 11.5%)/100 = 2.3%
+            20% + 2.3% = 22.3
+            (30% * 11.5%)/100 = 3.45%
+            30% + 3.45% = 33.45
+            16.375 + 27.875 + 22.3 + 33.45 = 100
+            yes works
+
+        take each percentage and calc that of time left
+        reallocate time to tasks and restart countdown
+
+        frontend will wait 1-2 seconds and then refresh..maybe frontend could send its time back to 
+        backend and check that it's within ~3 seconds of the backend and if it is don't change anything
+
+
+
+pause/start component could be toggle
+
+
+**future feature, keep track of whole week and make sure at the end of the week it adds up to equal
+  time spent on each activity

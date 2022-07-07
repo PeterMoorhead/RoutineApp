@@ -1,3 +1,4 @@
+from mimetypes import init
 import time
 import random
 import datetime
@@ -19,35 +20,86 @@ def appStartTime():
     global currentTask
     global initTasks
 
+
+    print("appBegun: ", appBegun)
     if (appBegun == False):
+        print("starting app")
         appBegun = True
         #startup sequence
         splitTaskTime()
 
     print("on return: ", currentTask)
-    # newBrowser()
+    time.sleep(1)
     return getStatus()
 
 @app.route('/pause')
 def pauseTasks():
-    global paused
+    global paused    
+    global initTasks
+    global timeAtPause
+    global baseTasks
+
+    cT = newBrowser()
+
+    timeAtPause = totalTimeTillFinish('21:45:00')
+
+    taskAtPause = list(cT.keys())[0]
+    timeLeftOfTaskAtPause = list(cT.values())[0] 
+    print("timeLeftOfTaskAtPause:", timeLeftOfTaskAtPause) #7087
+    print("initTasks.get(taskAtPause):", initTasks.get(taskAtPause)) #{'startTime': 35454, 'endTime': 28364}
+
+    fullTimeAllocated = initTasks.get(taskAtPause)['startTime'] - initTasks.get(taskAtPause)['endTime']
+    print("fullTimeAllocated: ", fullTimeAllocated) #7090
+
+    timePassed = initTasks.get(taskAtPause)['startTime'] - (initTasks.get(taskAtPause)['endTime'] + timeLeftOfTaskAtPause) # 3104 - (time left) = time passed
+    print("time passed: ", timePassed) #3.0
+
+    taskTimeAlreadyDonePercentage = timePassed / fullTimeAllocated # 0.0004231311706629055 (percentage)
+    print("taskTimeAlreadyDonePercentage: ", taskTimeAlreadyDonePercentage)
+
+    percentageLeftToDo = 1 - taskTimeAlreadyDonePercentage # new allocation for when you start again or 13.5% in example
+
+    index = 0
+    for i in baseTasks:
+        percentToAdd = (i.percent * (i.percent * taskTimeAlreadyDonePercentage))/100
+        print("i.percent", i.percent)
+        print("(i.percent * taskTimeAlreadyDonePercentage)", (i.percent * taskTimeAlreadyDonePercentage))
+        print("percentToAdd", percentToAdd)
+        print("percentageLeftToDo", percentageLeftToDo)
+        if (index == 0):
+          newPercentAllocation = percentToAdd + (i.percent * percentageLeftToDo)
+        else:
+          newPercentAllocation = percentToAdd + i.percent
+
+        print("newPercentAllocation", newPercentAllocation)
+        
+        baseTasks[index].percent = newPercentAllocation
+        index = index + 1
+
+    for x in baseTasks:
+        print("Task: ", x.task)
+        print("Start Time: ", x.startTime)
+        print("End Time: ", x.endTime)
+        print("Percentage: ", x.percent)
+
+
     paused = True
-    return getStatus()
+    return {'paused': 0}
 
 @app.route('/start')
 def startTasks():
     global totalTimeLeft
-    global paused 
+    global paused
+
     paused = False
+    
+    splitTaskTime()
     return getStatus()
 
 def getStatus():
     global paused
-    global currentTask
-    print("paused: ", paused)
-    print("currentTask: ", currentTask["name"])
-    print("time: ", initTasks[currentTask["name"]])
-    task = {"task": currentTask["name"], "time": initTasks[currentTask["name"]]}
+    
+    task = newBrowser()
     return {"paused": paused, "currentTask": task}
 
 def totalTimeTillFinish(endTime):
@@ -64,61 +116,53 @@ def splitTaskTime(): #not called often, just on start, pause/start
 
     # cachedTime is time left to go
     # need to divide that by each tasks %
-    
+
+    index = 0
+    y = totalTimeTillFinish('21:45:00') #time in seconds till 9:45pm
+    l = 0 #time that gets added up to add to end time etc during loop
     for i in baseTasks:
-        print("i:", i.task)
-        y = totalTimeTillFinish('21:45:00')
-        print("y", y)
-        initTasks[i.task] = i.time * int(totalTimeTillFinish('21:45:00'))
-        print("init task: ", initTasks[i.task])
+        if (index == 0):
+            x = i.percent * int(totalTimeTillFinish('21:45:00'))
+            l = round(l + x)
+            initTasks[i.task] = {"endTime": 0, "startTime": round(x)-1}
+            print(initTasks[i.task])
+        else:
+            x = i.percent * int(totalTimeTillFinish('21:45:00'))
+            initTasks[i.task] = {"endTime": l, "startTime": round(x + l)-1}
+            l = round(l + x)
+            print(initTasks[i.task])
 
-    timeTillDoneInSeconds = initTasks[list(initTasks.keys())[0]] ## till hereish?
-    startTime = time.strftime("%H:%M:%S", time.localtime())
-    d2 = datetime.datetime.strptime(startTime,'%H:%M:%S')
-    d3 = d2 + datetime.timedelta(seconds=timeTillDoneInSeconds)
-    print("d333 in split: ", d3) #1900-01-01 19:53:46.400000
+        index = index + 1
+    
 
-    x = str(d3)
-    s_x = x.split(".", 1)
-    y = s_x[0]
-    d5 = datetime.datetime.strptime(y, '%Y-%d-%m %H:%M:%S')
-    print(d5)
-    currentTask = {"name": list(initTasks.keys())[0], "startTime": startTime, "endTime": d3} 
-    print("name in split: ", currentTask["name"])
-    print("startTime in split: ", currentTask["startTime"])
-    print("d3 in split: ", currentTask["endTime"])
-    # initTasks = {"programming",1960, "russian",1960, "self help",1960, "finance",1960, "exercise",1960} (task, time in seconds allocated for task)
-
-def newBrowser():
+def newBrowser(): # for when apps already running and you open it on your phone or somewhere afterwards
+    #needs to calc how far you are through current task list and at what time you are and then calc the remaining time to 9:45pm
     global totalTimeLeft
     global currentTask
-    global baseTasks
-    global initTasks
+    global initTasks #object of format: {'russian': {'endTime': 619, 'startTime': 310}, 'programming': {'endTime': 309, 'startTime': 0}} etc
+    global paused
 
+    currentTimeLeft = totalTimeTillFinish('21:45:00')
+    print("currentTimeLeft: ", currentTimeLeft)
+    for task in initTasks.copy():        
+        if (currentTimeLeft < initTasks[task]["endTime"]):
+            initTasks.pop(task)
 
-    startTime = time.strftime("%H:%M:%S", time.localtime())
-    d2 = datetime.datetime.strptime(startTime,'%H:%M:%S')
-    print("d2: ", d2)
-    print("endTime: ",currentTask["endTime"])
-    d2 = d2.strftime('%H:%M:%S')
-    d4 = currentTask["endTime"]
-    d2 = datetime.datetime.strptime(d2, '%H:%M:%S')
-    x = str(d4)
-    s_x = x.split(".", 1)
-    y = s_x[0]
-    d4 = datetime.datetime.strptime(y, '%Y-%d-%m %H:%M:%S')
-    d3 = d4 - d2
-    print("newBrowser: ", d3)
+    for task in initTasks:
+        if (currentTimeLeft >= initTasks[task]["endTime"] and currentTimeLeft <= initTasks[task]["startTime"]):
+            x = currentTimeLeft - initTasks[task]["endTime"]
+            print("x: ", x)
+            return {task: x} #returns {'russian': 200} where 200 is time left
 
-    currentTask = {"name": list(initTasks.keys())[0], "startTime": startTime, "endTime": d3}
-    return
+    return {'nothing': 0}
 
 appBegun = False
 
 rng = random.randint(1, 5)
 
-baseTasks = [Task("programming",0.2), Task("russian",0.2), Task("self help",0.2), Task("finance",0.2), Task("exercise",0.2)] #task,percentage
+baseTasks = [Task("programming",0.2,0,0), Task("russian",0.2,0,0), Task("self help",0.2,0,0), Task("finance",0.2,0,0), Task("exercise",0.2,0,0)] #task,percentage
 paused = False
 totalTimeLeft = totalTimeTillFinish('21:45:00') #returns seconds left
 initTasks = {}
 currentTask = 0
+timeAtPause = 0

@@ -38,7 +38,6 @@ method():
     continues until end time (9:45)
 
 if pause is clicked():
-    countdown is stopped
     paused set to true
     percentage calculator()
         how much of the current task have I done current time - start time covnert to %
@@ -58,13 +57,17 @@ if pause is clicked():
             30%/30%
 
             (25% * 11.5%)/100 = 2.875%
-            13.5 + 2.875 = 16.375
+            13.5% + 2.875% = 16.375
+
             (25% * 11.5%)/100 = 2.875%
             25% + 2.875% = 27.875
+
             (20% * 11.5%)/100 = 2.3%
             20% + 2.3% = 22.3
+
             (30% * 11.5%)/100 = 3.45%
             30% + 3.45% = 33.45
+
             16.375 + 27.875 + 22.3 + 33.45 = 100
             yes works
 
@@ -78,6 +81,7 @@ if pause is clicked():
 
 pause/start component could be toggle
 
+need a done early button too
 
 **future feature, keep track of whole week and make sure at the end of the week it adds up to equal
   time spent on each activity

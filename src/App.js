@@ -9,55 +9,52 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      paused: false,
       time: 0,
-      task: {}
+      task: ""
     }
-    this.test = this.test.bind(this);
+    this.timer = 0;
+    this.handleFinishedTask = this.handleFinishedTask.bind(this);
+    this.pauseCurrentTask = this.pauseCurrentTask.bind(this);
   }
 
   componentDidMount() {
+    this.handleFinishedTask();
+  }
+
+  componentDidUpdate() {
+    clearInterval(this.timer);
+    this.timer = setInterval(this.handleFinishedTask, 30000);
+  }
+
+  handleFinishedTask() {
     fetch('http://localhost:5000/getRoutine').then(res => res.json()).then(data => {
       console.log(data);
-      this.setState({time: data.currentTask.time, task: data.currentTask});
+      console.log(Object.values(data.currentTask)[0]);
+      console.log(Object.keys(data.currentTask)[0]);
+      this.setState({paused: data.paused, time: Object.values(data.currentTask)[0], task: Object.keys(data.currentTask)[0].toString()});
     })
   }
 
-  test() {
-    fetch('http://localhost:5000/getRoutine').then(res => res.json()).then(data => {
-      console.log(data);
-      this.setState({time: data.currentTask.time + 1});
+  pauseCurrentTask() {
+    fetch('http://localhost:5000/pause').then(res => res.json()).then(data => {
+      this.setState({paused: data.paused});
+    })
+  }  
+  
+  startCurrentTask() {
+    fetch('http://localhost:5000/start').then(res => res.json()).then(data => {
+      console.log("retun from start: ", data);
+      this.setState({paused: data.paused});
     })
   }
-
-  // componentDidMount() {
-  //   if (this.state != this.state){
-  //     fetch('http://localhost:5000/getRoutine').then(res => res.json()).then(data => {
-  //       console.log(data);
-  //       this.setState({time: data.currentTask.time});
-  //     })
-  //   }
-  // }
 
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          <p><Countdown time={this.state}/></p>
-          <button onClick={(e) => {ApiService.pause(e)}}>Pause</button>
-          <button onClick={(e) => {ApiService.start(e)}}>Start</button>
-          <button onClick={this.test}>{this.state.time}</button>
+          <h3>{this.state.task}</h3>
+          <Countdown time={this.state.time} task={this.state.task} handleChange={this.handleFinishedTask} pause={this.pauseCurrentTask} start={this.startCurrentTask} paused={this.state.paused}/>
         </header>
       </div>
     );

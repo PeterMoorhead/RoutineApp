@@ -1,4 +1,6 @@
 class Task:
-  def __init__(self, task, time):
+  def __init__(self, task, percent, startTime, endTime):
     self.task = task
-    self.time = time
+    self.percent = percent
+    self.startTime = startTime
+    self.endTime = endTime
